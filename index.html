@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADNSU Tələbələri - Mesajlaşma Platforması</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script>
+        // Firebase Konfiqurasiya Kodları
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // Öz API Keyinizi daxil edin
+            authDomain: "adnsutelebeleri.firebaseapp.com",
+            databaseURL: "https://adnsutelebeleri-default-rtdb.firebaseio.com/",
+            projectId: "adnsutelebeleri",
+            storageBucket: "adnsutelebeleri.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Messaging Sender ID daxil edin
+            appId: "YOUR_APP_ID", // App ID daxil edin
+            measurementId: "YOUR_MEASUREMENT_ID" // Measurement ID daxil edin
+        };
+
+        // Firebase'i başlatmaq
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // Check for existing user
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById("userName").value = user.email; // İstifadəçi adını göstər
+                document.getElementById("post-form-section").style.display = "block";
+                document.getElementById("auth-section").style.display = "none";
+            } else {
+                displayLoginForm();
+            }
+        });
+
+        function displayLoginForm() {
+            // Qeydiyyat və giriş formunu göstər
+            document.getElementById("auth-section").innerHTML = `
+                <input type="email" id="loginEmail" placeholder="Email"><br>
+                <input type="password" id="loginPassword" placeholder="Şifrə"><br>
+                <button onclick="signInWithEmailAndPassword()">Giriş</button><br>
+                <button onclick="signUpWithEmailAndPassword()">Qeydiyyat</button>
+            `;
+            document.getElementById("post-form-section").style.display = "none";
+        }
+
+        function signInWithEmailAndPassword() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            auth.signInWithEmailAndPassword(email, password).then(() => {
+                console.log("Giriş müvəffəqiyyətlə tamamlandı");
+            }).catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                console.error(errorCode, errorMessage);
+            });
+        }
+
+        function signUpWithEmailAndPassword() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            auth.createUserWithEmailAndPassword(email, password).then(() => {
+                console.log("Qeydiyyat müvəffəqiyyətlə tamamlandı");
+            }).catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                console.error(errorCode, errorMessage);
+            });
+        }
+
+        function addPost() {
+            const userName = document.getElementById("userName").value;
+            const postContent = document.getElementById("postContent").value;
+
+            const postRef = db.ref('posts').push();
+            postRef.set({
+                userName: userName,
+                postContent: postContent,
+                timestamp: Date.now()
+            }).then(() => {
+                console.log("Mesaj uğurla göndərildi");
+                document.getElementById("postContent").value = ''; // Mesajı göndərdikdən sonra təmizləyirik
+            }).catch((error) => {
+                console.error("Mesaj göndərərkən xəta baş verdi", error);
+            });
+        }
+
+        // Postları göstərmək üçün funksiyalar
+        const postsRef = db.ref('posts');
+        postsRef.on('child_added', (snapshot) => {
+            const post = snapshot.val();
+            const postElement = document.createElement('div');
+            postElement.innerHTML = `
+                <p><strong>${post.userName}</strong> - ${new Date(post.timestamp).toLocaleString()}</p>
+                <p>${post.postContent}</p>
+                <hr>
+            `;
+            document.getElementById("postList").appendChild(postElement);
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>ADNSU Tələbələri - Mesajlaşma Platforması</header>
+
+        <div id="auth-section">
+            <!-- Giriş və qeydiyyat formu buradadır -->
+        </div>
+
+        <div id="post-form-section" style="display: none;">
+            <input type="text" id="userName" placeholder="Adınızı daxil edin" readonly />
+            <textarea id="postContent" placeholder="Mesajınızı yazın" rows="5"></textarea>
+            <button onclick="addPost()">Göndər</button>
+        </div>
+
+        <div id="postList"></div>
+    </div>
+</body>
+</html>
